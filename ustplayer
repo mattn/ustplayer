@@ -1,0 +1,25 @@
+#!/bin/bash
+
+FLASHPLAYER=/usr/bin/flashplayer
+
+if [ "x$1" == "x" ]; then
+  echo "usage: `basename $0` [channel]"
+  exit
+fi
+
+TMP=`mktemp /tmp/ustplayer.XXXXXX`
+curl -s "http://www.ustream.tv/channel/$1" |\
+	/bin/grep "<param name=\"\(flashvars\|movie\)\"" |\
+	/bin/sed -e 's/&amp;/\&/g' -e 's/^\s*//g' |\
+	/usr/bin/sort |\
+	/usr/bin/uniq > $TMP
+URL=`cat $TMP | sed -ne 's/^\s*<param name="movie" value=\"\([^\"]\+\)\".*$/\1/p'`
+URL=$URL\&`cat $TMP | sed -ne 's/^\s*<param name="flashvars" value=\"\([^\"]\+\)\".*/\1/p'`
+rm $TMP
+
+if [ "x$URL" == "x" ]; then
+  echo "currently offline?"
+  exit
+fi
+echo playing $URL
+$FLASHPLAYER "$URL"
